@@ -108,7 +108,7 @@ Window를 생성하기 위한 5단계
   * mCmdShow : 윈도우를 어떻게 보여줄 것인지 설정한다.
 * 일반적으로 윈도우의 모습을 제어하는 데는 위의 매개변수들은 안씀
 
-## Window클래스 구조체 매개변수들 (P.47)
+## Window클래스(WNDCLASSEX) 구조체 매개변수들 (P.47)
 * cbSize : 구조체의 크기를 나타낸다. (주로 sizeof(구조체)로 대입함)
 * style : 윈도우를 갱신하는 방법을 포함해 윈도우에 대한 다양한 측면을 정의한다. 스타일은 '|'인 or연산으로 결합한다.
 * lpfnWndProc : 윈도우에 보낸 메세지를 처리하는 함수를 가리키는 포인터다.
@@ -121,8 +121,68 @@ Window를 생성하기 위한 5단계
 * hIconsm : 윈도우의 제목 표시줄과 시작 메뉴에 사용할 작은 아이콘을 정의한다.
 * RegisterClassEx : RegisterClassEx()를 호출해 클래스를 등록할 수 있다.
 
+## Window생성 5 단계
+1. WinClass 생성
+2. WinClass등록 (RegisterClassEx)
+3. CreateWindow
+4. ShowWindow
+5. 메세지 루프
+
+## 윈도우 메모리 생성 함수
+* CreateWindow() : 양쌤이 걍 그렇다고 했음
+
+## CreateWindow 매개변수들 (P.49)
+* lpClassName : Window클래스 이름 등 NULL로 끝나는 문자열을 가리키는 포인터다. lpClassName에서 사용하는 이름은 CreateWindowClass함수의 lpszClassName멤버에서 사용한 이름과 동일해야 한다.
+* lpWindowName : 윈도우의 제목 표시줄에 나타낼 텍스트다.
+* dsStyle : 생성할 윈도우의 스타일이다.
+  * WS_OVERLAPPEDWINDOW : 컨트롤이 있고 크기를 조절할 수 있는 윈도우
+  * WS_OVERLAPPED : 컨트롤이 없고 크기가 고정된 윈도우, 윈도우 기반 게임을 만들 때 주로 사용함
+  * WS_EX_TOPMOST | WS_VISIBLE | WS_POPUP : 스타일 3개를 |로 연결, 게임을 전체 화면으로 만들 때 사용하는 스타일
+* x, y : 윈도우 왼쪽 위 모서리의 좌표다.
+* nWidth : 윈도우의 픽셀 단위 폭이다.
+* nHeight : 윈도우의 픽셀 단위 높이다.
+* hWndParent : 부모 윈도우
+* hMenu : 윈도우 메뉴
+* hInstance : Window클래스로부터 식별할 수 있는 애플리케이션 식별자
+* ipParam : 추가 윈도우 매개변수다.
+
+## ShowWindow (P.51)
+* ShowWindow(핸들러, 커맨드);
+* 윈도우를 표시함
+
+## 메세지 루프 (P.52)
+* 윈도우는 메시지 전송을 통해 프로그램과 의사소통함
+  * Ex. 마우스 움직임, 키 누름, 윈도우에서 보내는 명령
+* WM_QUIT 메시지를 받을 때 까지 루프를 반복 수행함
+* WinMain이 시스템으로 반환될 때 반환 값은 WM_QUIT 메시지의 wParam 매개변수 값이 된다.
+
+        int done = 0;
+        while(!done)
+        {
+          if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+          {
+            if (msg.message == WM_QUIT)
+              done = 1;
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+          }
+        }
+
+## WinProc함수 (P.53)
+* 메시지를 처리하는데 사용되는 함수임.
+* 함수의 이름은 CreateWindowClass함수의 WNDCLASSEX구조체 안에 명시된 이름과 동일해야함
+
+        switch(msg)
+        {
+          case WM_DESTROY:
+            PostQuitMessage(0);
+            return 0;
+        }
+        return DefWindowProc(hwnd, msg, wParam, lParam)
+
 ## 클래스 구조체를 등록할 때 사용하는 함수 (P.47)
 * RegisterClassEx : RegisterClassEx()를 호출해 클래스를 등록할 수 있다.
+* 에러 발생시 0을 리턴함
 
 ## 디바이스 컨텍스트(DC) (P.58)
 * 윈도우는 다양한 표시 장치나 출력 장치와 동작할 수 있게 설계돼 있다.
@@ -145,7 +205,35 @@ Window를 생성하기 위한 5단계
           }
         }
 
-## 키보드
+## 키보드 (P.58 ~ 69)
+* WM_CHAR와 VK(가상키, Virtual Key)가 있음
+* WM_KEYDOWN : 키가 누르는 상태인지
+* WM_KEYUP : 키가 안눌린 상태인지
+* VK(가상 키 코드)는 윈도우에 의해 할당됨
+  * 키보드에서 각 키는 할당된 키 코드를 가진다.
+  * WinUser.h파일에 존나 많음
+
+        if (vkKeys[VK_RIGHT])
+          // 현재 오른쪽 화살 키를 눌렀다.
+* GetAsyncKeyState : 사용한 애플리케이션이 포커스를 갖지 않은 경우에도 키보드의 현재 상태를 읽음 -> 주의해서 사용해야함
+
+
+## 문자 (P.63)
+* TextOut(핸들러, 위치X, 위치Y, 문자, 크기) : 텍스트를 출력함
+
+        case WM_PAINT:
+          hdc = BeginPaint(hwnd, &ps);
+          GetClientRect(hwnd, &rect);
+          TextOut(hdc, rect.right / 2, rect.left / 2, &ch, 1);
+          EndPoint(hwnd, &ps);
+          return 0;
+
+## 걍 알아둬야할 함수들
+* PeekMessage() : 메세지가 있든 없든 리턴함
+* GetMessage() : 메세지가 없다면 메세지가 올 때 까지 대기함 (동적인 게임에서는 좋은 선택이 아님)
+* TranslateMessage() : 가상 키 메시지를 문자 메시지로 변환
+* DispatchMessage() : 시스템 메시지 큐에서 꺼낸 메시지를 프로그램의 메시지 처리 함수(WinProc)로 전달한다.
+
 
 ## 뮤텍스 (P.70)
 * 한 번에 하나의 스레드만 소유할 수 있는 객체다.
@@ -167,3 +255,39 @@ Window를 생성하기 위한 5단계
 * 일반적인 윈도우 시스템에서 주어진 시간에 수십 개의 스레드가 실행되므로, 선점형 멀티 태스킹은 여전히 필요함
 * 윈도우의 멀티태스킹 특징은 짧은 타임 슬라이스에서만 실행이 허용됨
 * 다음 타임 슬라이스가 발생할 때에 대한 매우 제한된 통제를 가짐
+
+## 세마포어 (P. ?)
+
+## 2장 정리 (P.72)
+* WinMain이 윈도우 애플리케이션의 시작점임
+* Winodw 클래스 등록 방법
+* WNDCLASSEX 구조체에 대해서
+* CreateWindow함수와 매개변수
+* 윈도우 메세지 루프
+* 윈도우 메세지 처리를 위한 WinProc이라는 함수를 사용
+* 문자 입력을 위한 WM_CHAR에 대한 사용방법을 배움
+* 키보드를 게임 컨트롤러와 같이 사용하기 위해 WM_KEYDOWN, WM_KEYUP을 사용함
+* 현재 프로그램에서 실행중인 인스턴스를 테스트할 수 있는 함수를 작성
+* 윈도우는 짧은 타임 슬라이스에 프로그램을 실행하기 위해 멀티태스킹을 사용함
+
+## 복습문제
+1. 윈도우 애플리케이션의 시작점은? : WinMain
+2. WNDCLASSEX 구조체에서 lpfnWndProc멤버의 역할은 ? : 윈도우에 보낸 메세지를 처리하는 함수를 가리키는 포인터다.
+3. CreateWindow 함수의 dsStyle매개변수 값 중 윈도우 모드 게임에 가장 일반적으로 사용되는 스타일은? : WS_OVERLAPPED
+4. dsStyle 매개변수 값 중 전체 화면 게임에 사용되는 스타일 값은 무엇인가? : WS_EX_TOPMOST | WS_VISIBLE | WS_POPUP
+5. hwnd가 NULL이라면 다음 if문은 true, false중 무엇을 출력하는가? : false
+6. 윈도우는 프로그램 안에서 어떻게 의사소통 하는가? : 메시지 전송을 통해서
+7. 메세지 루프는 언제 끝나는가? : WM_QUIT이 메세지큐에 존재한다면
+8. 프로그램에서 메시지를 무시하면 어떤 일이 일어나는가? : ?
+9. WM_CHAR 메시지는 어디에 사용되는가? : 문자를 읽을 때
+10. 가상 키 코드란 무엇인가? : 윈도우에서 직접 할당된 키보드 각 키에 할당된 코드
+
+## 연습문제
+1. 그림 2.1에 있는 'Hello World'프로그램을 'Hello World by:'뒤에 자기 이름이 나오도록 수정하라
+
+        const char APP_TITLE[] = "Hello World by : Deokwon";
+
+2. 리스트 2.14에서 어떤 키를 눌러야 PC스피커에서 비프음이 나게 할 수 있는가? : 백스페이스, 탭, 라인피드, 캐리지 리턴, 이스케이프
+3. 그림 2.8에 있는 keyboard2 프로그램을 사용해 키보드 입력을 테스트 해보라
+  * 동시에 입력 가능한 키의 개수는? : 6개
+  * 작동하지 않는 키 조합을 나열해보라 : ?
